@@ -1,0 +1,10 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "regions": ["iad1", "nrt1"],
+  "env": {
+    "NEXT_PUBLIC_HELIUS_RPC_URL": "@helius_rpc_url",
+    "NEXT_PUBLIC_HELIUS_API_KEY": "@helius_api_key"
+  }
+}

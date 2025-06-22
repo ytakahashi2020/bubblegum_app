@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Bubblegum NFT App
 
-## Getting Started
+Solana Compressed NFTs (cNFTs) を使用したNFT作成ツールです。初心者でも簡単にテストネットでNFTを作成できます。
 
-First, run the development server:
+## 🚀 デプロイ
+
+### Vercelでの自動デプロイ
+
+1. [Vercel](https://vercel.com/) にアクセスし、GitHubアカウントでログイン
+2. 「New Project」をクリック
+3. このリポジトリ `ytakahashi2020/bubblegum_app` を選択
+4. 「Import」をクリック
+
+### 環境変数の設定
+
+Vercelプロジェクトの設定で以下の環境変数を設定してください：
+
+1. プロジェクトダッシュボードで「Settings」→「Environment Variables」へ
+2. 以下の変数を追加：
+
+```
+NEXT_PUBLIC_HELIUS_RPC_URL=https://devnet.helius-rpc.com
+NEXT_PUBLIC_HELIUS_API_KEY=あなたのHeliusAPIキー
+```
+
+### Helius API Keyの取得
+
+1. [Helius Dashboard](https://dashboard.helius.xyz/) にアクセス
+2. アカウントを作成/ログイン
+3. 新しいプロジェクトを作成
+4. Devnet用のAPI Keyをコピー
+
+## 🔧 ローカル開発
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## ⚠️ 重要な注意事項
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **テスト用アカウントでのみ使用してください**
+- 価値のある資産が入ったウォレットでは使用しないでください
+- このツールはDevnet（テストネット）用です
 
-## Learn More
+## 📚 使い方
 
-To learn more about Next.js, take a look at the following resources:
+詳細な使い方はアプリ内の「初心者向け操作ガイド」をご覧ください。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🛠️ 技術スタック
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Next.js 14
+- Tailwind CSS
+- Solana Web3.js
+- @solana/wallet-adapter
+- @metaplex-foundation/mpl-bubblegum
 
-## Deploy on Vercel
+## 🎯 機能
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Compressed NFTs (cNFTs) の作成
+- ローカルウォレット機能
+- 外部ウォレット接続 (Phantom, Solflare等)
+- 日本語・英語対応
+- ダークモード対応
