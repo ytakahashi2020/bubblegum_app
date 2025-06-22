@@ -65,8 +65,54 @@ export default function Home() {
       // Base58秘密鍵から直接キーペアを作成
       const bs58 = await import('bs58')
       const { Keypair } = await import('@solana/web3.js')
-      const secretKey = bs58.default.decode(testPrivateKey.trim())
-      const keypair = Keypair.fromSecretKey(secretKey)
+      
+      const privateKeyInput = testPrivateKey.trim()
+      console.log('🔍 Private key input length:', privateKeyInput.length)
+      console.log('🔍 Private key first 10 chars:', privateKeyInput.substring(0, 10))
+      
+      let keypair: any
+      
+      try {
+        // Base58形式を試す
+        const secretKey = bs58.default.decode(privateKeyInput)
+        if (secretKey.length !== 64) {
+          throw new Error(`Invalid secret key length: ${secretKey.length}, expected 64`)
+        }
+        keypair = Keypair.fromSecretKey(secretKey)
+        console.log('✅ Successfully decoded Base58 private key')
+      } catch (base58Error) {
+        console.log('❌ Base58 decode failed:', base58Error)
+        
+        // JSON配列形式を試す
+        try {
+          const arrayData = JSON.parse(privateKeyInput)
+          if (!Array.isArray(arrayData) || arrayData.length !== 64) {
+            throw new Error(`Invalid JSON array format: length ${arrayData?.length || 0}, expected 64`)
+          }
+          keypair = Keypair.fromSecretKey(new Uint8Array(arrayData))
+          console.log('✅ Successfully parsed JSON array private key')
+        } catch (jsonError) {
+          console.log('❌ JSON array parse failed:', jsonError)
+          
+          // Base64形式を試す
+          try {
+            const secretKey = Buffer.from(privateKeyInput, 'base64')
+            if (secretKey.length !== 64) {
+              throw new Error(`Invalid Base64 key length: ${secretKey.length}, expected 64`)
+            }
+            keypair = Keypair.fromSecretKey(secretKey)
+            console.log('✅ Successfully decoded Base64 private key')
+          } catch (base64Error) {
+            console.log('❌ Base64 decode failed:', base64Error)
+            throw new Error(`秘密鍵の形式が正しくありません。サポートされている形式:
+1. Base58形式（例: 2tygZdqVwBbVrcR919Qqp29DCKBpxYh3iBu9J63ap5S4Y7DU7Y9UR9M4JdYHHELyiUTmdbKvkbY65qbEqr8mxbvF）
+2. JSON配列形式（例: [1,2,3,4,...]）
+3. Base64形式
+
+入力された鍵の長さ: ${privateKeyInput.length}文字`)
+          }
+        }
+      }
       
       console.log('🔑 Test keypair created:', keypair.publicKey.toString())
       
@@ -358,7 +404,7 @@ export default function Home() {
                     value={testPrivateKey}
                     onChange={(e) => setTestPrivateKey(e.target.value)}
                     className="w-full px-3 py-2 border border-green-300 dark:border-green-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-green-900/30 dark:text-green-100"
-                    placeholder="2tygZdqVwBbVrcR919Qqp29DCKBpxYh3iBu9J63ap5S4Y7DU7Y9UR9M4JdYHHELyiUTmdbKvkbY65qbEqr8mxbvF"
+                    placeholder="例: solana-keygen newで生成したBase58秘密鍵を入力"
                   />
                   <p className="text-xs text-green-600 dark:text-green-400 mt-1">
                     {language === 'ja' 
