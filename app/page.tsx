@@ -72,10 +72,10 @@ export default function Home() {
       
       // Umiセットアップ
       const { createUmi } = await import('@metaplex-foundation/umi-bundle-defaults')
-      const { walletAdapterIdentity } = await import('@metaplex-foundation/umi-signer-wallet-adapters')
+      const { keypairIdentity } = await import('@metaplex-foundation/umi')
       
       const umi = createUmi(connection.rpcEndpoint)
-        .use(walletAdapterIdentity({ publicKey: keypair.publicKey, secretKey: keypair.secretKey }))
+        .use(keypairIdentity({ publicKey: keypair.publicKey, secretKey: keypair.secretKey }))
       
       console.log('🌳 Creating Merkle Tree...')
       const merkleTree = await createCompressedNftTree(umi, 14, 64)
