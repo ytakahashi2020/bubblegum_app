@@ -9,11 +9,34 @@ export async function GET() {
     const envPrivateKey = process.env.SOLANA_PRIVATE_KEY
     if (envPrivateKey) {
       try {
-        // Base58デコードして秘密鍵から配列を生成
         const { Keypair } = await import('@solana/web3.js')
-        const keypair = Keypair.fromSecretKey(
-          new Uint8Array(Buffer.from(envPrivateKey, 'base64'))
-        )
+        let keypair: any
+
+        // 1. Base58形式を試す（Solana標準）
+        try {
+          const bs58 = await import('bs58')
+          const secretKey = bs58.default.decode(envPrivateKey)
+          keypair = Keypair.fromSecretKey(secretKey)
+        } catch (base58Error) {
+          // 2. JSON配列形式を試す
+          try {
+            const walletData = JSON.parse(envPrivateKey)
+            if (Array.isArray(walletData) && walletData.length === 64) {
+              keypair = Keypair.fromSecretKey(new Uint8Array(walletData))
+            } else {
+              throw new Error('Invalid JSON array format')
+            }
+          } catch (jsonError) {
+            // 3. Base64形式を試す
+            try {
+              const secretKey = Buffer.from(envPrivateKey, 'base64')
+              keypair = Keypair.fromSecretKey(secretKey)
+            } catch (base64Error) {
+              throw new Error('Failed to parse private key in any supported format (Base58, JSON array, Base64)')
+            }
+          }
+        }
+
         const walletData = Array.from(keypair.secretKey)
         
         return NextResponse.json({
@@ -23,19 +46,6 @@ export async function GET() {
         })
       } catch (e) {
         console.error('Failed to parse SOLANA_PRIVATE_KEY environment variable:', e)
-        // Base64でダメならJSON配列も試す
-        try {
-          const walletData = JSON.parse(envPrivateKey)
-          if (Array.isArray(walletData) && walletData.length === 64) {
-            return NextResponse.json({
-              success: true,
-              keypair: walletData,
-              source: 'environment'
-            })
-          }
-        } catch (e2) {
-          console.error('Failed to parse as JSON array:', e2)
-        }
       }
     }
 
@@ -95,9 +105,33 @@ export async function POST() {
       if (envPrivateKey) {
         try {
           const { Keypair } = await import('@solana/web3.js')
-          const keypair = Keypair.fromSecretKey(
-            new Uint8Array(Buffer.from(envPrivateKey, 'base64'))
-          )
+          let keypair: any
+
+          // 1. Base58形式を試す（Solana標準）
+          try {
+            const bs58 = await import('bs58')
+            const secretKey = bs58.default.decode(envPrivateKey)
+            keypair = Keypair.fromSecretKey(secretKey)
+          } catch (base58Error) {
+            // 2. JSON配列形式を試す
+            try {
+              const walletData = JSON.parse(envPrivateKey)
+              if (Array.isArray(walletData) && walletData.length === 64) {
+                keypair = Keypair.fromSecretKey(new Uint8Array(walletData))
+              } else {
+                throw new Error('Invalid JSON array format')
+              }
+            } catch (jsonError) {
+              // 3. Base64形式を試す
+              try {
+                const secretKey = Buffer.from(envPrivateKey, 'base64')
+                keypair = Keypair.fromSecretKey(secretKey)
+              } catch (base64Error) {
+                throw new Error('Failed to parse private key in any supported format')
+              }
+            }
+          }
+
           const walletData = Array.from(keypair.secretKey)
           
           return NextResponse.json({
