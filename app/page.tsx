@@ -16,6 +16,13 @@ import {
   calculateTotalCost,
   getCompressedNftsByOwner 
 } from '@/lib/bubblegum'
+import {
+  setupUmiWithCliWallet,
+  createCompressedNftTree,
+  mintMultipleCompressedNfts,
+  verifyCompressedNfts,
+  calculateBubblegumCost
+} from '@/lib/bubblegumV2'
 import { useTranslation, formatMessage, type Language } from '@/lib/i18n'
 import { PublicKey } from '@solana/web3.js'
 
@@ -40,10 +47,106 @@ export default function Home() {
   const [verificationData, setVerificationData] = useState<Array<{id?: string; content?: {metadata?: {name?: string}}}>>([])
   const [isVerifying, setIsVerifying] = useState(false)
   const [mintProgress, setMintProgress] = useState({ current: 0, total: 0 })
+  const [useEnvKey, setUseEnvKey] = useState(false)
+  const [envKeyAvailable, setEnvKeyAvailable] = useState(false)
+  const [isStopping, setIsStopping] = useState(false)
+  const shouldStopRef = useRef(false)
 
+  // 環境変数キーの確認
+  useEffect(() => {
+    const checkEnvKey = async () => {
+      try {
+        const response = await fetch('/api/solana-keypair', { method: 'GET' })
+        if (response.ok) {
+          const data = await response.json()
+          setEnvKeyAvailable(data.success && data.keypair)
+        }
+      } catch (error) {
+        console.log('Environment key not available')
+        setEnvKeyAvailable(false)
+      }
+    }
+    checkEnvKey()
+  }, [])
+
+  const handleMintNFTsWithEnvKey = async () => {
+    setIsLoading(true)
+    shouldStopRef.current = false
+    setIsStopping(false)
+    
+    try {
+      const result = await setupUmiWithCliWallet(connection)
+      
+      if (!result) {
+        alert('Environment keypair not available')
+        setIsLoading(false)
+        return
+      }
+      
+      const { umi } = result
+      
+      console.log('🌳 Creating Merkle Tree...')
+      const merkleTree = await createCompressedNftTree(umi, 14, 64)
+      
+      console.log('🎨 Starting bulk mint...')
+      setMintProgress({ current: 0, total: quantity })
+      const { mintedCount, signatures } = await mintMultipleCompressedNfts(
+        umi,
+        merkleTree,
+        nftName,
+        quantity,
+        (current, total) => {
+          setMintProgress({ current, total })
+        },
+        () => shouldStopRef.current
+      )
+
+      const estimatedCost = calculateBubblegumCost(quantity)
+      
+      setTransactionResult({
+        totalCost: estimatedCost,
+        merkleTree: merkleTree.publicKey.toString(),
+        collectionMint: ''
+      })
+      
+      if (!shouldStopRef.current) {
+        console.log('🔍 Starting verification...')
+        setShowVerification(true)
+        setIsVerifying(true)
+        
+        try {
+          const verifiedNfts = await verifyCompressedNfts(umi, signatures.slice(0, 10))
+          setVerificationData(verifiedNfts.map(nft => ({
+            id: nft.id,
+            content: { metadata: { name: nft.name } }
+          })))
+        } catch (verifyError) {
+          console.error('Verification error:', verifyError)
+        } finally {
+          setIsVerifying(false)
+        }
+        
+        alert(`🚀 ${mintedCount} NFTs created successfully!\nTotal cost: ${estimatedCost.toFixed(4)} SOL`)
+      } else {
+        alert('Minting stopped')
+      }
+    } catch (error) {
+      console.error('Error minting NFTs with environment key:', error)
+      alert(`Error: ${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+      setIsLoading(false)
+      setMintProgress({ current: 0, total: 0 })
+      shouldStopRef.current = false
+      setIsStopping(false)
+    }
+  }
 
 
   const handleMintNFTs = async () => {
+    if (useEnvKey) {
+      return handleMintNFTsWithEnvKey()
+    }
+
     if (!publicKey || !wallet || !signTransaction || !signAllTransactions) {
       alert('Please connect your wallet')
       return
@@ -119,8 +222,13 @@ export default function Home() {
     }
   }
 
+  const handleStopMinting = () => {
+    shouldStopRef.current = true
+    setIsStopping(true)
+  }
+
   const isQuantityDisabledForExternal = (qty: number) => {
-    return qty >= 100
+    return !useEnvKey && qty >= 100
   }
 
 
@@ -145,7 +253,20 @@ export default function Home() {
               <Globe className="h-4 w-4" />
               {language === 'en' ? '日本語' : 'English'}
             </button>
-            <WalletMultiButton />
+            {envKeyAvailable && (
+              <button
+                onClick={() => setUseEnvKey(!useEnvKey)}
+                className={`flex items-center gap-2 px-3 py-2 text-sm border rounded-lg transition-colors ${
+                  useEnvKey 
+                    ? 'bg-green-500 text-white border-green-500 hover:bg-green-600'
+                    : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                <Zap className="h-4 w-4" />
+                {language === 'ja' ? 'テストモード' : 'Test Mode'}
+              </button>
+            )}
+            {!useEnvKey && <WalletMultiButton />}
           </div>
         </header>
 
@@ -155,6 +276,23 @@ export default function Home() {
             <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">
               {t.nftCreationSettings}
             </h2>
+
+            {useEnvKey && (
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 mb-6">
+                <div className="flex items-center gap-2 text-green-800 dark:text-green-200">
+                  <Zap className="h-5 w-5" />
+                  <span className="font-semibold">
+                    {language === 'ja' ? 'テストモード有効' : 'Test Mode Enabled'}
+                  </span>
+                </div>
+                <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                  {language === 'ja' 
+                    ? '環境変数の秘密鍵を使用してテストします。ウォレット接続は不要で、大量作成も可能です。'
+                    : 'Using environment variable private key for testing. No wallet connection required, bulk creation enabled.'
+                  }
+                </p>
+              </div>
+            )}
             
             <div className="space-y-6">
               <div>
@@ -210,7 +348,7 @@ export default function Home() {
               <div className="flex gap-4">
                 <button
                   onClick={handleMintNFTs}
-                  disabled={!publicKey || isLoading}
+                  disabled={(useEnvKey ? false : !publicKey) || isLoading}
                   className="flex-1 py-4 px-6 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-400 text-white font-semibold rounded-xl transition-all duration-300 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl disabled:shadow-none"
                 >
                   {isLoading ? (
