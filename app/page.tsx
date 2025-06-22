@@ -286,11 +286,6 @@ export default function Home() {
     }
   }
 
-  const handleStopMinting = () => {
-    shouldStopRef.current = true
-    setIsStopping(true)
-  }
-
   const isQuantityDisabledForExternal = (qty: number) => {
     return !useEnvKey && qty >= 100
   }
