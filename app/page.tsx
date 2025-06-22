@@ -48,36 +48,92 @@ export default function Home() {
   const [isVerifying, setIsVerifying] = useState(false)
   const [mintProgress, setMintProgress] = useState({ current: 0, total: 0 })
   const [useEnvKey, setUseEnvKey] = useState(false)
-  const [envKeyAvailable, setEnvKeyAvailable] = useState(false)
   const [isStopping, setIsStopping] = useState(false)
+  const [testPrivateKey, setTestPrivateKey] = useState('')
   const shouldStopRef = useRef(false)
 
-  // 環境変数キーの確認
-  useEffect(() => {
-    const checkEnvKey = async () => {
-      try {
-        console.log('🔍 Checking environment key...')
-        const response = await fetch('/api/solana-keypair', { method: 'GET' })
-        console.log('📡 Response status:', response.status)
-        
-        if (response.ok) {
-          const data = await response.json()
-          console.log('📄 Response data:', data)
-          const isAvailable = data.success && data.keypair
-          console.log('✅ Environment key available:', isAvailable)
-          setEnvKeyAvailable(isAvailable)
-        } else {
-          const errorData = await response.json()
-          console.log('❌ Error response:', errorData)
-          setEnvKeyAvailable(false)
-        }
-      } catch (error) {
-        console.log('❌ Environment key check failed:', error)
-        setEnvKeyAvailable(false)
-      }
+
+  const handleMintNFTsWithBase58 = async () => {
+    if (!testPrivateKey.trim()) {
+      alert('Please enter a Base58 private key')
+      return
     }
-    checkEnvKey()
-  }, [])
+
+    setIsLoading(true)
+    shouldStopRef.current = false
+    setIsStopping(false)
+    
+    try {
+      // Base58秘密鍵から直接キーペアを作成
+      const bs58 = await import('bs58')
+      const { Keypair } = await import('@solana/web3.js')
+      const secretKey = bs58.default.decode(testPrivateKey.trim())
+      const keypair = Keypair.fromSecretKey(secretKey)
+      
+      console.log('🔑 Test keypair created:', keypair.publicKey.toString())
+      
+      // Umiセットアップ
+      const { createUmi } = await import('@metaplex-foundation/umi-bundle-defaults')
+      const { walletAdapterIdentity } = await import('@metaplex-foundation/umi-signer-wallet-adapters')
+      
+      const umi = createUmi(connection.rpcEndpoint)
+        .use(walletAdapterIdentity({ publicKey: keypair.publicKey, secretKey: keypair.secretKey }))
+      
+      console.log('🌳 Creating Merkle Tree...')
+      const merkleTree = await createCompressedNftTree(umi, 14, 64)
+      
+      console.log('🎨 Starting bulk mint...')
+      setMintProgress({ current: 0, total: quantity })
+      const { mintedCount, signatures } = await mintMultipleCompressedNfts(
+        umi,
+        merkleTree,
+        nftName,
+        quantity,
+        (current, total) => {
+          setMintProgress({ current, total })
+        },
+        () => shouldStopRef.current
+      )
+
+      const estimatedCost = calculateBubblegumCost(quantity)
+      
+      setTransactionResult({
+        totalCost: estimatedCost,
+        merkleTree: merkleTree.publicKey.toString(),
+        collectionMint: ''
+      })
+      
+      if (!shouldStopRef.current) {
+        console.log('🔍 Starting verification...')
+        setShowVerification(true)
+        setIsVerifying(true)
+        
+        try {
+          const verifiedNfts = await verifyCompressedNfts(umi, signatures.slice(0, 10))
+          setVerificationData(verifiedNfts.map(nft => ({
+            id: nft.id,
+            content: { metadata: { name: nft.name } }
+          })))
+        } catch (verifyError) {
+          console.error('Verification error:', verifyError)
+        } finally {
+          setIsVerifying(false)
+        }
+        
+        alert(`🚀 ${mintedCount} NFTs created successfully!\nTotal cost: ${estimatedCost.toFixed(4)} SOL`)
+      } else {
+        alert('Minting stopped')
+      }
+    } catch (error) {
+      console.error('Error minting NFTs with Base58 key:', error)
+      alert(`Error: ${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+      setIsLoading(false)
+      setMintProgress({ current: 0, total: 0 })
+      shouldStopRef.current = false
+      setIsStopping(false)
+    }
+  }
 
   const handleMintNFTsWithEnvKey = async () => {
     setIsLoading(true)
@@ -154,7 +210,7 @@ export default function Home() {
 
   const handleMintNFTs = async () => {
     if (useEnvKey) {
-      return handleMintNFTsWithEnvKey()
+      return handleMintNFTsWithBase58()
     }
 
     if (!publicKey || !wallet || !signTransaction || !signAllTransactions) {
@@ -263,27 +319,19 @@ export default function Home() {
               <Globe className="h-4 w-4" />
               {language === 'en' ? '日本語' : 'English'}
             </button>
-            {envKeyAvailable && (
-              <button
-                onClick={() => setUseEnvKey(!useEnvKey)}
-                className={`flex items-center gap-2 px-3 py-2 text-sm border rounded-lg transition-colors ${
-                  useEnvKey 
-                    ? 'bg-green-500 text-white border-green-500 hover:bg-green-600'
-                    : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
-                }`}
-              >
-                <Zap className="h-4 w-4" />
-                {language === 'ja' ? 'テストモード' : 'Test Mode'}
-              </button>
-            )}
+            <button
+              onClick={() => setUseEnvKey(!useEnvKey)}
+              className={`flex items-center gap-2 px-3 py-2 text-sm border rounded-lg transition-colors ${
+                useEnvKey 
+                  ? 'bg-green-500 text-white border-green-500 hover:bg-green-600'
+                  : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              <Zap className="h-4 w-4" />
+              {language === 'ja' ? 'テストモード' : 'Test Mode'}
+            </button>
             {!useEnvKey && <WalletMultiButton />}
             
-            {/* デバッグ情報 */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="text-xs text-gray-500 mt-2">
-                Debug: envKeyAvailable = {envKeyAvailable.toString()}
-              </div>
-            )}
           </div>
         </header>
 
@@ -302,12 +350,30 @@ export default function Home() {
                     {language === 'ja' ? 'テストモード有効' : 'Test Mode Enabled'}
                   </span>
                 </div>
-                <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                <p className="text-sm text-green-700 dark:text-green-300 mt-1 mb-3">
                   {language === 'ja' 
-                    ? '環境変数の秘密鍵を使用してテストします。ウォレット接続は不要で、大量作成も可能です。'
-                    : 'Using environment variable private key for testing. No wallet connection required, bulk creation enabled.'
+                    ? 'Base58秘密鍵を使用してテストします。ウォレット接続は不要で、大量作成も可能です。'
+                    : 'Using Base58 private key for testing. No wallet connection required, bulk creation enabled.'
                   }
                 </p>
+                <div>
+                  <label className="block text-sm font-medium text-green-800 dark:text-green-200 mb-2">
+                    {language === 'ja' ? 'Base58秘密鍵' : 'Base58 Private Key'}
+                  </label>
+                  <input
+                    type="password"
+                    value={testPrivateKey}
+                    onChange={(e) => setTestPrivateKey(e.target.value)}
+                    className="w-full px-3 py-2 border border-green-300 dark:border-green-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-green-900/30 dark:text-green-100"
+                    placeholder="2tygZdqVwBbVrcR919Qqp29DCKBpxYh3iBu9J63ap5S4Y7DU7Y9UR9M4JdYHHELyiUTmdbKvkbY65qbEqr8mxbvF"
+                  />
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                    {language === 'ja' 
+                      ? '⚠️ テスト用の秘密鍵のみ使用してください'
+                      : '⚠️ Only use test private keys'
+                    }
+                  </p>
+                </div>
               </div>
             )}
             
@@ -365,7 +431,7 @@ export default function Home() {
               <div className="flex gap-4">
                 <button
                   onClick={handleMintNFTs}
-                  disabled={(useEnvKey ? false : !publicKey) || isLoading}
+                  disabled={(useEnvKey ? !testPrivateKey.trim() : !publicKey) || isLoading}
                   className="flex-1 py-4 px-6 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-400 text-white font-semibold rounded-xl transition-all duration-300 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl disabled:shadow-none"
                 >
                   {isLoading ? (
