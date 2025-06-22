@@ -49,6 +49,11 @@ export default function Home() {
   const [mintProgress, setMintProgress] = useState({ current: 0, total: 0 })
   const [useEnvKey, setUseEnvKey] = useState(false)
   const [testPrivateKey, setTestPrivateKey] = useState('')
+  const [balanceInfo, setBalanceInfo] = useState<{
+    startBalance: number
+    endBalance: number
+    gasUsed: number
+  } | null>(null)
 
 
   const handleMintNFTsWithBase58 = async () => {
@@ -60,6 +65,7 @@ export default function Home() {
     setIsLoading(true)
     shouldStopRef.current = false
     setIsStopping(false)
+    setBalanceInfo(null) // リセット
     
     try {
       // Base58秘密鍵から直接キーペアを作成
@@ -116,6 +122,10 @@ export default function Home() {
       
       console.log('🔑 Test keypair created:', keypair.publicKey.toString())
       
+      // 開始時の残高を取得
+      const startBalance = await connection.getBalance(keypair.publicKey) / 1000000000 // lamportsをSOLに変換
+      console.log('💰 Starting balance:', startBalance, 'SOL')
+      
       // Umiセットアップ
       const { createUmi } = await import('@metaplex-foundation/umi-bundle-defaults')
       const { keypairIdentity } = await import('@metaplex-foundation/umi')
@@ -142,6 +152,19 @@ export default function Home() {
         () => shouldStopRef.current
       )
 
+      // 終了時の残高を取得
+      const endBalance = await connection.getBalance(keypair.publicKey) / 1000000000
+      const gasUsed = startBalance - endBalance
+      console.log('💰 Ending balance:', endBalance, 'SOL')
+      console.log('⛽ Gas used:', gasUsed, 'SOL')
+      
+      // 残高情報を保存
+      setBalanceInfo({
+        startBalance,
+        endBalance,
+        gasUsed
+      })
+
       const estimatedCost = calculateBubblegumCost(quantity)
       
       setTransactionResult({
@@ -167,9 +190,12 @@ export default function Home() {
           setIsVerifying(false)
         }
         
-        alert(`🚀 ${mintedCount} NFTs created successfully!\nTotal cost: ${estimatedCost.toFixed(4)} SOL`)
+        // シンプルな完了メッセージ
+        alert(language === 'ja' 
+          ? `🎉 ${mintedCount}個のNFTが作成完了しました！`
+          : `🎉 ${mintedCount} NFTs created successfully!`)
       } else {
-        alert('Minting stopped')
+        alert(language === 'ja' ? 'ミントが停止されました' : 'Minting stopped')
       }
     } catch (error) {
       console.error('Error minting NFTs with Base58 key:', error)
@@ -618,9 +644,48 @@ This process will take a long time. Do you want to continue?
                 {t.creationResults}
               </h2>
               <div className="space-y-4 mb-6">
+                {/* 残高情報の表示 */}
+                {balanceInfo && (
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800">
+                    <h3 className="font-bold text-blue-800 dark:text-blue-300 mb-3 flex items-center gap-2">
+                      <span>💰</span>
+                      {language === 'ja' ? 'SOL残高の変化' : 'SOL Balance Changes'}
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                      <div className="bg-white dark:bg-blue-900/30 p-3 rounded-lg">
+                        <p className="text-blue-600 dark:text-blue-400 font-semibold">
+                          {language === 'ja' ? '開始時残高' : 'Starting Balance'}
+                        </p>
+                        <p className="font-mono font-bold text-blue-800 dark:text-blue-200">
+                          {balanceInfo.startBalance.toFixed(6)} SOL
+                        </p>
+                      </div>
+                      <div className="bg-white dark:bg-blue-900/30 p-3 rounded-lg">
+                        <p className="text-blue-600 dark:text-blue-400 font-semibold">
+                          {language === 'ja' ? 'ミント後残高' : 'Ending Balance'}
+                        </p>
+                        <p className="font-mono font-bold text-blue-800 dark:text-blue-200">
+                          {balanceInfo.endBalance.toFixed(6)} SOL
+                        </p>
+                      </div>
+                      <div className="bg-white dark:bg-blue-900/30 p-3 rounded-lg">
+                        <p className="text-red-600 dark:text-red-400 font-semibold">
+                          {language === 'ja' ? '使用したガス代' : 'Gas Used'}
+                        </p>
+                        <p className="font-mono font-bold text-red-800 dark:text-red-200">
+                          {balanceInfo.gasUsed.toFixed(6)} SOL
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl">
                   <p className="text-gray-700 dark:text-gray-300">
                     {t.totalCost}: <span className="font-mono font-bold text-green-600">{transactionResult.totalCost.toFixed(4)} SOL</span>
+                    <span className="text-xs text-gray-500 ml-2">
+                      ({language === 'ja' ? '推定値' : 'Estimated'})
+                    </span>
                   </p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
