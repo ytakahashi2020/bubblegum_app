@@ -63,6 +63,7 @@ export async function createCompressedNftTree(
     merkleTree,
     maxDepth,
     maxBufferSize,
+    treeCreator: umi.identity,
   })
 
   await builder.sendAndConfirm(umi)
@@ -71,7 +72,7 @@ export async function createCompressedNftTree(
   
   // Merkle Tree初期化完了まで待機
   console.log(`⏳ Waiting for Merkle Tree initialization...`)
-  await new Promise(resolve => setTimeout(resolve, 30000)) // 30秒待機
+  await new Promise(resolve => setTimeout(resolve, 15000)) // 15秒に短縮
   
   console.log(`✅ Merkle Tree initialization completed`)
   return merkleTree
