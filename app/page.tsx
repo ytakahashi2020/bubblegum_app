@@ -48,9 +48,7 @@ export default function Home() {
   const [isVerifying, setIsVerifying] = useState(false)
   const [mintProgress, setMintProgress] = useState({ current: 0, total: 0 })
   const [useEnvKey, setUseEnvKey] = useState(false)
-  const [isStopping, setIsStopping] = useState(false)
   const [testPrivateKey, setTestPrivateKey] = useState('')
-  const shouldStopRef = useRef(false)
 
 
   const handleMintNFTsWithBase58 = async () => {
