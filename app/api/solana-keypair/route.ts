@@ -5,20 +5,37 @@ import * as path from 'path'
 
 export async function GET() {
   try {
-    // 本番環境では環境変数からキーペアを取得
-    const envKeypair = process.env.SOLANA_KEYPAIR
-    if (envKeypair) {
+    // 本番環境では環境変数から秘密鍵を取得
+    const envPrivateKey = process.env.SOLANA_PRIVATE_KEY
+    if (envPrivateKey) {
       try {
-        const walletData = JSON.parse(envKeypair)
-        if (Array.isArray(walletData) && walletData.length === 64) {
-          return NextResponse.json({
-            success: true,
-            keypair: walletData,
-            source: 'environment'
-          })
-        }
+        // Base58デコードして秘密鍵から配列を生成
+        const { Keypair } = await import('@solana/web3.js')
+        const keypair = Keypair.fromSecretKey(
+          new Uint8Array(Buffer.from(envPrivateKey, 'base64'))
+        )
+        const walletData = Array.from(keypair.secretKey)
+        
+        return NextResponse.json({
+          success: true,
+          keypair: walletData,
+          source: 'environment'
+        })
       } catch (e) {
-        console.error('Failed to parse SOLANA_KEYPAIR environment variable:', e)
+        console.error('Failed to parse SOLANA_PRIVATE_KEY environment variable:', e)
+        // Base64でダメならJSON配列も試す
+        try {
+          const walletData = JSON.parse(envPrivateKey)
+          if (Array.isArray(walletData) && walletData.length === 64) {
+            return NextResponse.json({
+              success: true,
+              keypair: walletData,
+              source: 'environment'
+            })
+          }
+        } catch (e2) {
+          console.error('Failed to parse as JSON array:', e2)
+        }
       }
     }
 
@@ -55,7 +72,7 @@ export async function GET() {
     return NextResponse.json(
       { 
         error: 'No keypair available in production environment',
-        suggestion: 'Set SOLANA_KEYPAIR environment variable with your keypair JSON array'
+        suggestion: 'Set SOLANA_PRIVATE_KEY environment variable with your base64 encoded private key'
       },
       { status: 404 }
     )
@@ -74,25 +91,30 @@ export async function POST() {
   try {
     // 本番環境では環境変数のみ使用
     if (process.env.NODE_ENV === 'production') {
-      const envKeypair = process.env.SOLANA_KEYPAIR
-      if (envKeypair) {
+      const envPrivateKey = process.env.SOLANA_PRIVATE_KEY
+      if (envPrivateKey) {
         try {
-          const keypair = JSON.parse(envKeypair)
+          const { Keypair } = await import('@solana/web3.js')
+          const keypair = Keypair.fromSecretKey(
+            new Uint8Array(Buffer.from(envPrivateKey, 'base64'))
+          )
+          const walletData = Array.from(keypair.secretKey)
+          
           return NextResponse.json({
             success: true,
             config: { rpc_url: 'https://api.devnet.solana.com' },
-            keypair,
+            keypair: walletData,
             source: 'environment'
           })
         } catch (e) {
           return NextResponse.json(
-            { error: 'Invalid SOLANA_KEYPAIR environment variable' },
+            { error: 'Invalid SOLANA_PRIVATE_KEY environment variable' },
             { status: 400 }
           )
         }
       }
       return NextResponse.json(
-        { error: 'SOLANA_KEYPAIR environment variable not set' },
+        { error: 'SOLANA_PRIVATE_KEY environment variable not set' },
         { status: 404 }
       )
     }
