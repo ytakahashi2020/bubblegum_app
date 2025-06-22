@@ -111,7 +111,7 @@ export default function Home() {
     if (useLocalWallet) {
       // 100以上の場合は時間警告を表示
       if (quantity >= 100) {
-        const estimatedMinutes = Math.ceil(quantity * 0.5 / 60) // 0.5秒/NFTの概算
+        // const estimatedMinutes = Math.ceil(quantity * 0.5 / 60) // 0.5秒/NFTの概算
         setShowTimeWarning(true)
         return
       }
@@ -133,7 +133,7 @@ export default function Home() {
         signAllTransactions
       }
       
-      const { umi, merkleTree } = await createMerkleTree(walletAdapter as any, connection)
+      const { umi, merkleTree } = await createMerkleTree(walletAdapter as unknown as import('@solana/wallet-adapter-base').BaseWalletAdapter, connection)
       const collectionMint = await createCollectionNft(umi, `${nftName} Collection`)
       
       setMintProgress({ current: 0, total: quantity })
