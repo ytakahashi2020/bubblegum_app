@@ -71,7 +71,7 @@ export async function createCompressedNftTree(
   
   // Merkle Tree初期化完了まで待機
   console.log(`⏳ Waiting for Merkle Tree initialization...`)
-  await new Promise(resolve => setTimeout(resolve, 10000)) // 10秒待機
+  await new Promise(resolve => setTimeout(resolve, 30000)) // 30秒待機
   
   console.log(`✅ Merkle Tree initialization completed`)
   return merkleTree
@@ -110,7 +110,8 @@ export async function mintMultipleCompressedNfts(
   merkleTree: any,
   namePrefix: string,
   quantity: number,
-  onProgress?: (current: number, total: number) => void
+  onProgress?: (current: number, total: number) => void,
+  shouldStop?: () => boolean
 ): Promise<{ mintedCount: number; signatures: string[] }> {
   let mintedCount = 0
   const signatures: string[] = []
@@ -118,6 +119,12 @@ export async function mintMultipleCompressedNfts(
   console.log(`🚀 Starting to mint ${quantity} Compressed NFTs...`)
   
   for (let i = 0; i < quantity; i++) {
+    // 停止チェック
+    if (shouldStop && shouldStop()) {
+      console.log('🛑 Minting stopped by user')
+      break
+    }
+
     const index = i + 1
     const paddedIndex = index.toString().padStart(6, '0')
     const name = `${namePrefix}${paddedIndex}`
