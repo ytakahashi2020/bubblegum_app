@@ -1,7 +1,12 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
+import dynamic from 'next/dynamic'
+
+const WalletMultiButton = dynamic(
+  () => import('@solana/wallet-adapter-react-ui').then((mod) => ({ default: mod.WalletMultiButton })),
+  { ssr: false }
+)
 import { useWallet, useConnection } from '@solana/wallet-adapter-react'
 import { Loader2, Zap, Globe, StopCircle, ExternalLink, Youtube, Twitter } from 'lucide-react'
 import { 
@@ -605,6 +610,104 @@ export default function Home() {
               </div>
             </div>
           )}
+
+          {/* 重要な注意事項とセットアップガイド */}
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-6 mb-8">
+            <div className="flex items-start gap-3">
+              <div className="text-red-500 text-xl">⚠️</div>
+              <div>
+                <h3 className="text-lg font-bold text-red-800 dark:text-red-300 mb-2">
+                  {language === 'ja' ? '重要：テスト環境での使用について' : 'Important: Use in Test Environment Only'}
+                </h3>
+                <p className="text-red-700 dark:text-red-400 mb-2">
+                  {language === 'ja' 
+                    ? 'このツールは必ず資産が入っていないテスト用のアカウントで使用してください。本番環境や価値のある資産が入ったウォレットでは絶対に使用しないでください。'
+                    : 'Please use this tool only with test accounts that contain no valuable assets. Never use it with production wallets or accounts containing real assets.'
+                  }
+                </p>
+                <p className="text-red-700 dark:text-red-400 text-sm">
+                  {language === 'ja' 
+                    ? '開発者は一切の責任を負いません。自己責任でご利用ください。'
+                    : 'The developers assume no responsibility. Use at your own risk.'
+                  }
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 初心者向け操作ガイド */}
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-6 mb-8">
+            <h3 className="text-lg font-bold text-blue-800 dark:text-blue-300 mb-4 flex items-center gap-2">
+              <span>📚</span>
+              {language === 'ja' ? '初心者向け操作ガイド' : 'Beginner\'s Guide'}
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-semibold text-blue-700 dark:text-blue-400 mb-2">
+                  {language === 'ja' ? '1. ローカルウォレットでテストする場合' : '1. Testing with Local Wallet'}
+                </h4>
+                <ol className="list-decimal list-inside space-y-1 text-sm text-blue-600 dark:text-blue-300 ml-4">
+                  <li>{language === 'ja' ? 'ページ右上の「ローカルウォレットを使用」をオンにする' : 'Turn on "Use Local Wallet" in the top right'}</li>
+                  <li>{language === 'ja' ? 'アプリが自動でテスト用ウォレットを生成します' : 'The app will automatically generate a test wallet'}</li>
+                  <li>{language === 'ja' ? 'Solana Faucetからテストトークン（SOL）を取得する：' : 'Get test SOL from Solana Faucet:'}</li>
+                  <li className="ml-4">
+                    <a 
+                      href="https://faucet.solana.com/" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-500 hover:text-blue-700 underline"
+                    >
+                      https://faucet.solana.com/
+                    </a>
+                    {language === 'ja' ? ' にアクセス' : ' - Access this site'}
+                  </li>
+                  <li className="ml-4">{language === 'ja' ? 'ウォレットアドレスを入力して「Request Airdrop」をクリック' : 'Enter your wallet address and click "Request Airdrop"'}</li>
+                  <li>{language === 'ja' ? 'SOLが入金されたらNFTを作成できます' : 'Once SOL is received, you can create NFTs'}</li>
+                </ol>
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-blue-700 dark:text-blue-400 mb-2">
+                  {language === 'ja' ? '2. 外部ウォレット（Phantom等）でテストする場合' : '2. Testing with External Wallet (Phantom, etc.)'}
+                </h4>
+                <ol className="list-decimal list-inside space-y-1 text-sm text-blue-600 dark:text-blue-300 ml-4">
+                  <li>{language === 'ja' ? 'ウォレットをDevnetに切り替える' : 'Switch your wallet to Devnet'}</li>
+                  <li>{language === 'ja' ? '「Select Wallet」からウォレットを接続' : 'Click "Select Wallet" to connect your wallet'}</li>
+                  <li>{language === 'ja' ? 'Solana Faucetからテストトークンを取得（上記と同様）' : 'Get test tokens from Solana Faucet (same as above)'}</li>
+                  <li>{language === 'ja' ? 'NFTを作成・確認できます' : 'You can now create and view NFTs'}</li>
+                </ol>
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-blue-700 dark:text-blue-400 mb-2">
+                  {language === 'ja' ? '3. 作成したNFTの確認方法' : '3. How to View Created NFTs'}
+                </h4>
+                <ul className="list-disc list-inside space-y-1 text-sm text-blue-600 dark:text-blue-300 ml-4">
+                  <li>{language === 'ja' ? 'Solana Explorer: ' : 'Solana Explorer: '}
+                    <a 
+                      href="https://explorer.solana.com/?cluster=devnet" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-500 hover:text-blue-700 underline"
+                    >
+                      explorer.solana.com
+                    </a>
+                  </li>
+                  <li>{language === 'ja' ? 'SolanaFM: ' : 'SolanaFM: '}
+                    <a 
+                      href="https://solana.fm/?cluster=devnet-solana" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-500 hover:text-blue-700 underline"
+                    >
+                      solana.fm
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
 
           {/* フッター - Yuki様の宣伝 */}
           <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl shadow-xl p-8 text-white">
