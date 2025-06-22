@@ -61,18 +61,17 @@ export async function createCompressedNftTree(
   
   const builder = await createTreeV2(umi, {
     merkleTree,
-    maxDepth,
     maxBufferSize,
-    treeCreator: umi.identity,
+    maxDepth,
   })
 
   await builder.sendAndConfirm(umi)
   
   console.log(`✅ Merkle Tree created: ${merkleTree.publicKey}`)
   
-  // Merkle Tree初期化完了まで待機
+  // Merkle Tree初期化完了まで待機（参考コードと同じ30秒）
   console.log(`⏳ Waiting for Merkle Tree initialization...`)
-  await new Promise(resolve => setTimeout(resolve, 15000)) // 15秒に短縮
+  await new Promise(resolve => setTimeout(resolve, 30000)) // 30秒待機
   
   console.log(`✅ Merkle Tree initialization completed`)
   return merkleTree
@@ -93,11 +92,15 @@ export async function mintSingleCompressedNft(
     metadata: {
       name,
       uri,
-      sellerFeeBasisPoints: 0,
+      sellerFeeBasisPoints: 550, // 参考コードと同じ5.5%
       collection: none(),
       creators: [],
     },
   }).sendAndConfirm(umi)
+
+  // ミント後の待機時間を追加（参考コードと同様）
+  console.log(`⏳ Waiting after mint...`)
+  await new Promise(resolve => setTimeout(resolve, 5000)) // 5秒待機
 
   console.log(`✅ NFT minted successfully: ${name}`)
   console.log(`📝 Transaction signature: ${signature}`)

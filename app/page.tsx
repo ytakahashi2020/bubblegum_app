@@ -119,9 +119,12 @@ export default function Home() {
       // Umiセットアップ
       const { createUmi } = await import('@metaplex-foundation/umi-bundle-defaults')
       const { keypairIdentity } = await import('@metaplex-foundation/umi')
+      const { fromWeb3JsKeypair } = await import('@metaplex-foundation/umi-web3js-adapters')
+      const { dasApi } = await import('@metaplex-foundation/digital-asset-standard-api')
       
       const umi = createUmi(connection.rpcEndpoint)
-        .use(keypairIdentity({ publicKey: keypair.publicKey, secretKey: keypair.secretKey }))
+        .use(keypairIdentity(fromWeb3JsKeypair(keypair)))
+        .use(dasApi())
       
       console.log('🌳 Creating Merkle Tree...')
       const merkleTree = await createCompressedNftTree(umi, 14, 64)
