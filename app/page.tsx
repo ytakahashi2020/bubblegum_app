@@ -56,13 +56,23 @@ export default function Home() {
   useEffect(() => {
     const checkEnvKey = async () => {
       try {
+        console.log('🔍 Checking environment key...')
         const response = await fetch('/api/solana-keypair', { method: 'GET' })
+        console.log('📡 Response status:', response.status)
+        
         if (response.ok) {
           const data = await response.json()
-          setEnvKeyAvailable(data.success && data.keypair)
+          console.log('📄 Response data:', data)
+          const isAvailable = data.success && data.keypair
+          console.log('✅ Environment key available:', isAvailable)
+          setEnvKeyAvailable(isAvailable)
+        } else {
+          const errorData = await response.json()
+          console.log('❌ Error response:', errorData)
+          setEnvKeyAvailable(false)
         }
       } catch (error) {
-        console.log('Environment key not available')
+        console.log('❌ Environment key check failed:', error)
         setEnvKeyAvailable(false)
       }
     }
@@ -267,6 +277,13 @@ export default function Home() {
               </button>
             )}
             {!useEnvKey && <WalletMultiButton />}
+            
+            {/* デバッグ情報 */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="text-xs text-gray-500 mt-2">
+                Debug: envKeyAvailable = {envKeyAvailable.toString()}
+              </div>
+            )}
           </div>
         </header>
 

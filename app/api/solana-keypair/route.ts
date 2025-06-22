@@ -5,8 +5,13 @@ import * as path from 'path'
 
 export async function GET() {
   try {
+    console.log('🔍 API: Checking SOLANA_PRIVATE_KEY...')
     // 本番環境では環境変数から秘密鍵を取得
     const envPrivateKey = process.env.SOLANA_PRIVATE_KEY
+    console.log('🔑 API: SOLANA_PRIVATE_KEY exists:', !!envPrivateKey)
+    console.log('🔑 API: SOLANA_PRIVATE_KEY length:', envPrivateKey?.length || 0)
+    console.log('🔑 API: SOLANA_PRIVATE_KEY preview:', envPrivateKey?.substring(0, 20) + '...')
+    
     if (envPrivateKey) {
       try {
         const { Keypair } = await import('@solana/web3.js')
