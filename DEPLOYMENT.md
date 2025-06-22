@@ -32,6 +32,20 @@ Value: [あなたのHelius APIキー]
 Environment: Production, Preview, Development（すべて選択）
 ```
 
+#### オプション：本番環境でのローカルウォレット機能
+ローカルウォレット機能を本番環境でも使用したい場合：
+
+```
+Name: SOLANA_KEYPAIR
+Value: [1,2,3,4,5,6,7,8,...] （64個の数値の配列）
+Environment: Production, Preview, Development（すべて選択）
+```
+
+**SOLANA_KEYPAIRの取得方法：**
+1. `solana-keygen new --outfile test-keypair.json` でテスト用キーペアを生成
+2. `cat test-keypair.json` でファイル内容を表示
+3. 表示された数値配列をコピーして環境変数に設定
+
 ### 3. Helius API Keyの取得方法
 
 1. **Helius Dashboardにアクセス**: https://dashboard.helius.xyz/
