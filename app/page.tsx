@@ -645,43 +645,53 @@ export default function Home() {
             <div className="space-y-4">
               <div>
                 <h4 className="font-semibold text-blue-700 dark:text-blue-400 mb-2">
-                  {language === 'ja' ? '1. ローカルウォレットでテストする場合' : '1. Testing with Local Wallet'}
+                  {language === 'ja' ? '1. ウォレットアプリをインストール' : '1. Install Wallet App'}
+                </h4>
+                <ul className="list-disc list-inside space-y-1 text-sm text-blue-600 dark:text-blue-300 ml-4">
+                  <li>{language === 'ja' ? 'Phantom、Solflare、Backpack等のウォレットアプリをインストール' : 'Install wallet apps like Phantom, Solflare, or Backpack'}</li>
+                  <li>{language === 'ja' ? '推奨：' : 'Recommended: '}
+                    <a href="https://phantom.app/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 underline">
+                      Phantom Wallet
+                    </a>
+                  </li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-blue-700 dark:text-blue-400 mb-2">
+                  {language === 'ja' ? '2. テストネット設定' : '2. Testnet Setup'}
                 </h4>
                 <ol className="list-decimal list-inside space-y-1 text-sm text-blue-600 dark:text-blue-300 ml-4">
-                  <li>{language === 'ja' ? 'ページ右上の「ローカルウォレットを使用」をオンにする' : 'Turn on "Use Local Wallet" in the top right'}</li>
-                  <li>{language === 'ja' ? 'アプリが自動でテスト用ウォレットを生成します' : 'The app will automatically generate a test wallet'}</li>
-                  <li>{language === 'ja' ? 'Solana Faucetからテストトークン（SOL）を取得する：' : 'Get test SOL from Solana Faucet:'}</li>
-                  <li className="ml-4">
+                  <li>{language === 'ja' ? 'ウォレットで新しいアカウント（テスト用）を作成' : 'Create a new account (for testing) in your wallet'}</li>
+                  <li>{language === 'ja' ? 'ネットワークを「Devnet」に切り替え' : 'Switch network to "Devnet"'}</li>
+                  <li>{language === 'ja' ? 'このアプリで「Select Wallet」からウォレットを接続' : 'Connect your wallet using "Select Wallet" in this app'}</li>
+                </ol>
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-blue-700 dark:text-blue-400 mb-2">
+                  {language === 'ja' ? '3. テストトークン取得' : '3. Get Test Tokens'}
+                </h4>
+                <ol className="list-decimal list-inside space-y-1 text-sm text-blue-600 dark:text-blue-300 ml-4">
+                  <li>
                     <a 
                       href="https://faucet.solana.com/" 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="text-blue-500 hover:text-blue-700 underline"
                     >
-                      https://faucet.solana.com/
+                      Solana Faucet
                     </a>
                     {language === 'ja' ? ' にアクセス' : ' - Access this site'}
                   </li>
-                  <li className="ml-4">{language === 'ja' ? 'ウォレットアドレスを入力して「Request Airdrop」をクリック' : 'Enter your wallet address and click "Request Airdrop"'}</li>
-                  <li>{language === 'ja' ? 'SOLが入金されたらNFTを作成できます' : 'Once SOL is received, you can create NFTs'}</li>
+                  <li>{language === 'ja' ? 'ウォレットアドレスを入力して「Request Airdrop」をクリック' : 'Enter your wallet address and click "Request Airdrop"'}</li>
+                  <li>{language === 'ja' ? 'SOLが入金されたらNFT作成開始！' : 'Once SOL is received, start creating NFTs!'}</li>
                 </ol>
               </div>
 
               <div>
                 <h4 className="font-semibold text-blue-700 dark:text-blue-400 mb-2">
-                  {language === 'ja' ? '2. 外部ウォレット（Phantom等）でテストする場合' : '2. Testing with External Wallet (Phantom, etc.)'}
-                </h4>
-                <ol className="list-decimal list-inside space-y-1 text-sm text-blue-600 dark:text-blue-300 ml-4">
-                  <li>{language === 'ja' ? 'ウォレットをDevnetに切り替える' : 'Switch your wallet to Devnet'}</li>
-                  <li>{language === 'ja' ? '「Select Wallet」からウォレットを接続' : 'Click "Select Wallet" to connect your wallet'}</li>
-                  <li>{language === 'ja' ? 'Solana Faucetからテストトークンを取得（上記と同様）' : 'Get test tokens from Solana Faucet (same as above)'}</li>
-                  <li>{language === 'ja' ? 'NFTを作成・確認できます' : 'You can now create and view NFTs'}</li>
-                </ol>
-              </div>
-
-              <div>
-                <h4 className="font-semibold text-blue-700 dark:text-blue-400 mb-2">
-                  {language === 'ja' ? '3. 作成したNFTの確認方法' : '3. How to View Created NFTs'}
+                  {language === 'ja' ? '4. 作成したNFTの確認方法' : '4. How to View Created NFTs'}
                 </h4>
                 <ul className="list-disc list-inside space-y-1 text-sm text-blue-600 dark:text-blue-300 ml-4">
                   <li>{language === 'ja' ? 'Solana Explorer: ' : 'Solana Explorer: '}

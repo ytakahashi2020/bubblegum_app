@@ -60,7 +60,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 ## 🎯 機能
 
 - Compressed NFTs (cNFTs) の作成
-- ローカルウォレット機能
 - 外部ウォレット接続 (Phantom, Solflare等)
 - 日本語・英語対応
 - ダークモード対応
+- 初心者向けガイド付き

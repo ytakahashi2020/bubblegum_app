@@ -32,19 +32,6 @@ Value: [あなたのHelius APIキー]
 Environment: Production, Preview, Development（すべて選択）
 ```
 
-#### オプション：本番環境でのローカルウォレット機能
-ローカルウォレット機能を本番環境でも使用したい場合：
-
-```
-Name: SOLANA_PRIVATE_KEY
-Value: [Base64エンコードされた秘密鍵]
-Environment: Production, Preview, Development（すべて選択）
-```
-
-**SOLANA_PRIVATE_KEYの取得方法：**
-1. `solana-keygen new --outfile test-keypair.json` でテスト用キーペアを生成
-2. `cat test-keypair.json | base64` でBase64エンコード
-3. 出力された文字列をコピーして環境変数に設定
 
 ### 3. Helius API Keyの取得方法
 
@@ -67,7 +54,9 @@ Environment: Production, Preview, Development（すべて選択）
 
 デプロイ完了後：
 - **アプリにアクセス**（VercelのURLが表示されます）
-- **"ローカルウォレットを使用" をON**
+- **Phantomウォレット等をインストール**
+- **テスト用アカウントを作成し、Devnetに切り替え**
+- **"Select Wallet" でウォレット接続**
 - **Solana Faucetでテストトークンを取得**: https://faucet.solana.com/
 - **NFT作成をテスト**
 
