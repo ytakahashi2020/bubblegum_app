@@ -16,13 +16,6 @@ import {
   calculateTotalCost,
   getCompressedNftsByOwner 
 } from '@/lib/bubblegum'
-import {
-  setupUmiWithCliWallet,
-  createCompressedNftTree,
-  mintMultipleCompressedNfts,
-  verifyCompressedNfts,
-  calculateBubblegumCost
-} from '@/lib/bubblegumV2'
 import { useTranslation, formatMessage, type Language } from '@/lib/i18n'
 import { PublicKey } from '@solana/web3.js'
 
@@ -47,77 +40,10 @@ export default function Home() {
   const [verificationData, setVerificationData] = useState<Array<{id?: string; content?: {metadata?: {name?: string}}}>>([])
   const [isVerifying, setIsVerifying] = useState(false)
   const [mintProgress, setMintProgress] = useState({ current: 0, total: 0 })
-  const [useLocalWallet, setUseLocalWallet] = useState(false)
-  const [localWalletInfo, setLocalWalletInfo] = useState<{address: string; balance: number} | null>(null)
-  const [showTimeWarning, setShowTimeWarning] = useState(false)
 
-  // 残高チェック（10秒ごと）
-  useEffect(() => {
-    if (!localWalletInfo?.address) return
 
-    const checkBalance = async () => {
-      try {
-        const response = await fetch('/api/solana-keypair', { method: 'POST' })
-        if (response.ok) {
-          const data = await response.json()
-          if (data.success && data.keypair) {
-            const { Keypair } = await import('@solana/web3.js')
-            const keypair = Keypair.fromSecretKey(new Uint8Array(data.keypair))
-            const balance = await connection.getBalance(keypair.publicKey)
-            setLocalWalletInfo(prev => prev ? { ...prev, balance: balance / 1e9 } : null)
-          }
-        }
-      } catch (error) {
-        console.error('Error checking balance:', error)
-      }
-    }
-
-    const interval = setInterval(checkBalance, 10000) // 10秒ごと
-    return () => clearInterval(interval)
-  }, [localWalletInfo?.address, connection])
-
-  const handleLoadSolanaCliWallet = async () => {
-    try {
-      const result = await setupUmiWithCliWallet(connection)
-      
-      if (!result) {
-        alert(t.loadingFailed)
-        return
-      }
-      
-      const { address, keypair } = result
-      
-      // 残高確認
-      const balance = await connection.getBalance(keypair.publicKey)
-      
-      setLocalWalletInfo({
-        address,
-        balance: balance / 1e9
-      })
-      
-      alert(`${t.walletLoaded}\n${t.address}: ${address.slice(0, 20)}...\n${t.balance}: ${(balance / 1e9).toFixed(4)} SOL`)
-    } catch (error) {
-      console.error('Error loading Solana CLI wallet:', error)
-      alert(t.loadingFailed)
-    }
-  }
-
-  const handleTimeWarningConfirm = () => {
-    setShowTimeWarning(false)
-    handleMintNFTsLocal()
-  }
 
   const handleMintNFTs = async () => {
-    if (useLocalWallet) {
-      // 100以上の場合は時間警告を表示
-      if (quantity >= 100) {
-        // const estimatedMinutes = Math.ceil(quantity * 0.5 / 60) // 0.5秒/NFTの概算
-        setShowTimeWarning(true)
-        return
-      }
-      return handleMintNFTsLocal()
-    }
-
     if (!publicKey || !wallet || !signTransaction || !signAllTransactions) {
       alert('Please connect your wallet')
       return
@@ -164,77 +90,6 @@ export default function Home() {
     }
   }
 
-  const handleMintNFTsLocal = async () => {
-    setIsLoading(true)
-    shouldStopRef.current = false
-    setIsStopping(false)
-    
-    try {
-      const result = await setupUmiWithCliWallet(connection)
-      
-      if (!result) {
-        alert(t.localWalletNotReady)
-        setIsLoading(false)
-        return
-      }
-      
-      const { umi } = result
-      
-      console.log('🌳 Creating Merkle Tree...')
-      const merkleTree = await createCompressedNftTree(umi, 10, 32)
-      
-      console.log('🎨 Starting bulk mint...')
-      setMintProgress({ current: 0, total: quantity })
-      const { mintedCount, signatures } = await mintMultipleCompressedNfts(
-        umi,
-        merkleTree,
-        nftName,
-        quantity,
-        (current, total) => {
-          setMintProgress({ current, total })
-        },
-        () => shouldStopRef.current
-      )
-
-      const estimatedCost = calculateBubblegumCost(quantity)
-      
-      setTransactionResult({
-        totalCost: estimatedCost,
-        merkleTree: merkleTree.publicKey.toString(),
-        collectionMint: ''
-      })
-      
-      if (!shouldStopRef.current) {
-        console.log('🔍 Starting verification...')
-        setShowVerification(true)
-        setIsVerifying(true)
-        
-        try {
-          const verifiedNfts = await verifyCompressedNfts(umi, signatures.slice(0, 10))
-          setVerificationData(verifiedNfts.map(nft => ({
-            id: nft.id,
-            content: { metadata: { name: nft.name } }
-          })))
-        } catch (verifyError) {
-          console.error('Verification error:', verifyError)
-        } finally {
-          setIsVerifying(false)
-        }
-        
-        alert(`🚀 ${mintedCount} NFTs created successfully!\nTotal cost: ${estimatedCost.toFixed(4)} SOL`)
-      } else {
-        alert(t.mintingStopped)
-      }
-    } catch (error) {
-      console.error('Error minting NFTs with Solana CLI wallet:', error)
-      alert(`${t.error}: ${error instanceof Error ? error.message : String(error)}`)
-    } finally {
-      setIsLoading(false)
-      setMintProgress({ current: 0, total: 0 })
-      shouldStopRef.current = false
-      setIsStopping(false)
-    }
-  }
 
   const handleStopMinting = () => {
     shouldStopRef.current = true
@@ -265,10 +120,9 @@ export default function Home() {
   }
 
   const isQuantityDisabledForExternal = (qty: number) => {
-    return !useLocalWallet && qty >= 100
+    return qty >= 100
   }
 
-  const estimatedMinutes = quantity >= 100 ? Math.ceil(quantity * 0.5 / 60) : 0
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-purple-900">
@@ -291,97 +145,11 @@ export default function Home() {
               <Globe className="h-4 w-4" />
               {language === 'en' ? '日本語' : 'English'}
             </button>
-            {!useLocalWallet && <WalletMultiButton />}
-            {useLocalWallet && localWalletInfo && (
-              <div className="text-sm text-gray-600 dark:text-gray-400 text-right bg-white dark:bg-gray-800 p-3 rounded-lg border">
-                <div className="font-medium">{t.localWallet}</div>
-                <div className="font-mono text-xs text-gray-500">{localWalletInfo.address.slice(0, 10)}...</div>
-                <div className="font-semibold text-green-600">{localWalletInfo.balance.toFixed(4)} SOL</div>
-              </div>
-            )}
+            <WalletMultiButton />
           </div>
         </header>
 
         <main className="max-w-4xl mx-auto">
-          {/* ウォレット選択 */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 mb-8 border border-gray-100 dark:border-gray-700">
-            <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white flex items-center gap-2">
-              <Zap className="h-6 w-6 text-blue-500" />
-              {t.walletSelection}
-            </h2>
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <button
-                  onClick={() => setUseLocalWallet(false)}
-                  className={`p-6 rounded-xl font-medium transition-all duration-300 ${
-                    !useLocalWallet
-                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg transform scale-105'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  <div className="text-lg font-semibold">{t.externalWallet}</div>
-                  <div className="text-sm opacity-90 mt-1">Phantom, Solflare, etc.</div>
-                </button>
-                <button
-                  onClick={() => setUseLocalWallet(true)}
-                  className={`p-6 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-3 ${
-                    useLocalWallet
-                      ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg transform scale-105'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  <Zap className="h-5 w-5" />
-                  <div>
-                    <div className="text-lg font-semibold">{t.localWallet}</div>
-                    <div className="text-sm opacity-90">Solana CLI</div>
-                  </div>
-                </button>
-              </div>
-              
-              {useLocalWallet && (
-                <div className="border-t border-gray-200 dark:border-gray-600 pt-6">
-                  {!localWalletInfo ? (
-                    <div className="text-center">
-                      <p className="text-gray-600 dark:text-gray-400 mb-4">
-                        {t.localWalletNotReady}
-                      </p>
-                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-6">
-                        <p className="text-sm text-blue-800 dark:text-blue-200">
-                          <strong>{t.cliKeypairLocation}</strong><br/>
-                          <strong>{t.cliKeypairCommand}</strong>
-                        </p>
-                      </div>
-                      <button
-                        onClick={handleLoadSolanaCliWallet}
-                        className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl font-medium transition-all duration-300 shadow-lg hover:shadow-xl"
-                      >
-                        {t.loadCliKeypair}
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4">
-                      <div className="flex items-center gap-2 text-green-800 dark:text-green-200">
-                        <Zap className="h-5 w-5" />
-                        <span className="font-semibold">{t.localWalletReady}</span>
-                      </div>
-                      <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                        {t.noConfirmationDialogs}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              {!useLocalWallet && (
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4">
-                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                    {t.externalWalletNote}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* NFT作成設定 */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 mb-8 border border-gray-100 dark:border-gray-700">
             <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">
@@ -442,7 +210,7 @@ export default function Home() {
               <div className="flex gap-4">
                 <button
                   onClick={handleMintNFTs}
-                  disabled={(!publicKey && !useLocalWallet) || (useLocalWallet && !localWalletInfo) || isLoading}
+                  disabled={!publicKey || isLoading}
                   className="flex-1 py-4 px-6 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-400 text-white font-semibold rounded-xl transition-all duration-300 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl disabled:shadow-none"
                 >
                   {isLoading ? (
@@ -581,35 +349,6 @@ export default function Home() {
           )}
 
           {/* 時間警告ダイアログ */}
-          {showTimeWarning && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-md w-full">
-                <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
-                  ⏱️ Time Estimation
-                </h3>
-                <p className="text-gray-700 dark:text-gray-300 mb-6">
-                  {formatMessage(t.createTreeWarning, { 
-                    quantity: quantity.toString(), 
-                    minutes: estimatedMinutes.toString() 
-                  })}
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowTimeWarning(false)}
-                    className="flex-1 py-3 px-4 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
-                  >
-                    {t.cancel}
-                  </button>
-                  <button
-                    onClick={handleTimeWarningConfirm}
-                    className="flex-1 py-3 px-4 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl font-medium hover:from-purple-600 hover:to-purple-700 transition-all duration-300"
-                  >
-                    {t.continueAnyway}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* 重要な注意事項とセットアップガイド */}
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-6 mb-8">
